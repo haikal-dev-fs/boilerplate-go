@@ -1,0 +1,1019 @@
+openapi: 3.0.3
+info:
+  title: FMS API
+  version: 1.0.0
+  description: |
+    Fleet Management System API - versi awal.
+    Fitur utama:
+    - Manajemen kendaraan
+    - Posisi terkini kendaraan
+    - Trip history & alert (read-only dulu)
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Cek status API
+      tags: [System]
+      responses:
+        '200':
+          description: API sehat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /vehicles:
+    get:
+      summary: Daftar kendaraan
+      tags: [Vehicles]
+      parameters:
+        - in: query
+          name: organizationId
+          schema:
+            type: integer
+          required: false
+          description: Filter berdasarkan organizationId
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          required: false
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          required: false
+      responses:
+        '200':
+          description: List kendaraan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Vehicle'
+                  total:
+                    type: integer
+    post:
+      summary: Tambah kendaraan baru
+      tags: [Vehicles]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleCreateRequest'
+      responses:
+        '201':
+          description: Kendaraan berhasil dibuat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          description: Request tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /vehicles/{id}:
+    get:
+      summary: Detail kendaraan
+      tags: [Vehicles]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detail kendaraan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '404':
+          description: Kendaraan tidak ditemukan
+    put:
+      summary: Update data kendaraan
+      tags: [Vehicles]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VehicleUpdateRequest'
+      responses:
+        '200':
+          description: Kendaraan berhasil diupdate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Vehicle'
+        '400':
+          description: Request tidak valid
+        '404':
+          description: Kendaraan tidak ditemukan
+    delete:
+      summary: Hapus/nonaktifkan kendaraan
+      description: >
+        Secara logis menonaktifkan kendaraan (soft delete) dengan mengubah `active = false`.
+      tags: [Vehicles]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Berhasil dihapus/nonaktifkan
+        '404':
+          description: Kendaraan tidak ditemukan
+
+  /vehicles/{id}/current-position:
+    get:
+      summary: Posisi terkini kendaraan
+      tags: [Tracking]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Posisi terkini
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleCurrentPosition'
+        '404':
+          description: Data tidak ditemukan
+
+  /vehicles/{id}/trips:
+    get:
+      summary: Trip history kendaraan
+      tags: [Trips]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: Waktu mulai (ISO8601)
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+          required: false
+          description: Waktu akhir (ISO8601)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Daftar trip
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Trip'
+                  total:
+                    type: integer
+
+  /vehicles/{id}/alerts:
+    get:
+      summary: Alert kendaraan
+      tags: [Alerts]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, CLEARED, ACK]
+          required: false
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Daftar alert
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Alert'
+                  total:
+                    type: integer
+
+  /auth/login:
+    post:
+      summary: Login dan dapatkan JWT token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login berhasil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/users:
+    post:
+      summary: Create user in organization (ORG_ADMIN)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+    get:
+      summary: List users
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: organizationId
+          schema:
+            type: integer
+          required: false
+      responses:
+        '200':
+          description: List users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserDTO'
+
+  /api/users/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get user by id
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+    put:
+      summary: Update user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDTO'
+    delete:
+      summary: Soft-delete user
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /admin/organizations:
+    post:
+      summary: Create organization with admin (SUPER_ADMIN)
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrgRequest'
+      responses:
+        '201':
+          description: Organization created
+    get:
+      summary: List organizations
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List organizations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Organization'
+
+  /admin/organizations/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get organization
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+    put:
+      summary: Update organization
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrgRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Soft-delete organization
+      tags: [Organizations]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /admin/data-sources:
+    post:
+      summary: Create data source
+      tags: [DataSources]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDataSourceRequest'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List data sources
+      tags: [DataSources]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List
+
+  /admin/data-sources/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get data source
+      tags: [DataSources]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data source
+    put:
+      summary: Update data source
+      tags: [DataSources]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDataSourceRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete data source
+      tags: [DataSources]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /admin/devices:
+    post:
+      summary: Create device
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeviceRequest'
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List devices
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: active
+          schema:
+            type: boolean
+        - in: query
+          name: dataSourceId
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List
+
+  /admin/devices/{deviceId}:
+    parameters:
+      - in: path
+        name: deviceId
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get device (with attached vehicles)
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Device detail
+    put:
+      summary: Update device
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Soft-delete device
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Deleted
+
+  /admin/devices/{deviceId}/rebind:
+    put:
+      summary: Rebind device to another vehicle
+      tags: [Devices]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vehicleId:
+                  type: integer
+      responses:
+        '200':
+          description: Rebound
+
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        uptimeSeconds:
+          type: integer
+          example: 1234
+
+    Vehicle:
+      type: object
+      properties:
+        id:
+          type: integer
+        organizationId:
+          type: integer
+          nullable: true
+        plateNumber:
+          type: string
+          example: "B 1234 CD"
+        name:
+          type: string
+          example: "Truk Box 01"
+        vin:
+          type: string
+          nullable: true
+        vehicleType:
+          type: string
+          example: "truck"
+        active:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+
+    VehicleCreateRequest:
+      type: object
+      required:
+        - plateNumber
+      properties:
+        organizationId:
+          type: integer
+          nullable: true
+        plateNumber:
+          type: string
+        name:
+          type: string
+        vin:
+          type: string
+        vehicleType:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    VehicleUpdateRequest:
+      type: object
+      properties:
+        plateNumber:
+          type: string
+        name:
+          type: string
+        vin:
+          type: string
+        vehicleType:
+          type: string
+        active:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+
+    VehicleCurrentPosition:
+      type: object
+      properties:
+        vehicleId:
+          type: integer
+        deviceId:
+          type: integer
+          nullable: true
+        ts:
+          type: string
+          format: date-time
+        lat:
+          type: number
+          format: double
+          example: -6.200000
+        lon:
+          type: number
+          format: double
+          example: 106.816666
+        speedKph:
+          type: number
+          format: float
+          nullable: true
+        headingDeg:
+          type: number
+          format: float
+          nullable: true
+        ignitionOn:
+          type: boolean
+          nullable: true
+        odometerKm:
+          type: number
+          format: float
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+
+    Trip:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        startTs:
+          type: string
+          format: date-time
+        endTs:
+          type: string
+          format: date-time
+        startLat:
+          type: number
+          format: double
+          nullable: true
+        startLon:
+          type: number
+          format: double
+          nullable: true
+        endLat:
+          type: number
+          format: double
+          nullable: true
+        endLon:
+          type: number
+          format: double
+          nullable: true
+        distanceKm:
+          type: number
+          format: float
+          nullable: true
+        durationSeconds:
+          type: integer
+          nullable: true
+        maxSpeedKph:
+          type: number
+          format: float
+          nullable: true
+        avgSpeedKph:
+          type: number
+          format: float
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Alert:
+      type: object
+      properties:
+        id:
+          type: integer
+        vehicleId:
+          type: integer
+        deviceId:
+          type: integer
+          nullable: true
+        alertTypeId:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        endedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, CLEARED, ACK]
+        message:
+          type: string
+          nullable: true
+        payload:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        acknowledgedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "bad_request"
+        message:
+          type: string
+          example: "Plate number is required"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    LoginUserPayload:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        fullName:
+          type: string
+        userType:
+          type: string
+        organizationId:
+          type: integer
+          nullable: true
+        orgRole:
+          type: string
+          nullable: true
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/LoginUserPayload'
+
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+        active:
+          type: boolean
+
+    UserDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        fullName:
+          type: string
+        userType:
+          type: string
+        organizationId:
+          type: integer
+        orgRole:
+          type: string
+
+    CreateOrgRequest:
+      type: object
+      required:
+        - name
+        - adminEmail
+        - adminPassword
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        adminEmail:
+          type: string
+        adminPassword:
+          type: string
+        adminFullName:
+          type: string
+
+    UpdateOrgRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        active:
+          type: boolean
+
+    DataSource:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateDataSourceRequest:
+      type: object
+      required:
+        - name
+        - code
+        - type
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+
+    UpdateDataSourceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        code:
+          type: string
+        type:
+          type: string
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        dataSourceId:
+          type: integer
+        externalId:
+          type: string
+        simNumber:
+          type: string
+        model:
+          type: string
+        protocol:
+          type: string
+        active:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateDeviceRequest:
+      type: object
+      required:
+        - dataSourceId
+        - externalId
+      properties:
+        dataSourceId:
+          type: integer
+        externalId:
+          type: string
+        simNumber:
+          type: string
+        model:
+          type: string
+        protocol:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    UpdateDeviceRequest:
+      type: object
+      properties:
+        dataSourceId:
+          type: integer
+        simNumber:
+          type: string
+        model:
+          type: string
+        protocol:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

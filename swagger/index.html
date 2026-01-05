@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FMS API - Swagger UI</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css" />
+</head>
+<body>
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      // Inisialisasi Swagger UI
+      // Tambahkan timestamp query param untuk mem-bust cache browser sehingga
+      // perubahan `openapi.yaml` selalu termuat saat pengembangan.
+      var yamlUrl = "openapi.yaml" + "?ts=" + Date.now();
+      window.ui = SwaggerUIBundle({
+        url: yamlUrl,
+        dom_id: "#swagger-ui",
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout",
+        deepLinking: true,
+        validatorUrl: null
+      });
+    };
+  </script>
+</body>
+</html>
