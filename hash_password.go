@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	password := "asdasd" // ganti dengan password yang kamu mau
+	password := "SuperSecret123!" // ganti dengan password yang kamu mau
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)

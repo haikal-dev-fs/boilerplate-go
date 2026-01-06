@@ -70,13 +70,15 @@ func main() {
 	// can call the API during development.
 	router.Use(mw.CORSMiddleware())
 
-	// 5. Route /health
-	router.GET("/health", func(c *gin.Context) {
+	healthHandler := func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":    "ok",
 			"timestamp": time.Now().Format(time.RFC3339),
 		})
-	})
+	}
+
+	router.GET("/", healthHandler)
+	router.GET("/health", healthHandler)
 
 	// 6. Route untuk Swagger (serve file statis dari folder ./swagger)
 	// Ini artinya:

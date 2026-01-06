@@ -3,7 +3,8 @@ info:
   title: FMS API
   version: 1.0.0
   description: |
-    Fleet Management System API - versi awal.
+    Fleet Management System API.
+
     Fitur utama:
     - Manajemen kendaraan
     - Posisi terkini kendaraan
@@ -12,6 +13,8 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local development server
+  - url : "/"
+    description: Production server
 
 paths:
   /health:
@@ -25,6 +28,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+        '500': 
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /vehicles:
     get:
@@ -267,6 +282,17 @@ paths:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
           description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                  
 
   /api/users:
     post:
@@ -435,7 +461,7 @@ paths:
   /admin/data-sources:
     post:
       summary: Create data source
-      tags: [DataSources]
+      tags: [Data Sources]
       security:
         - bearerAuth: []
       requestBody:
@@ -449,7 +475,7 @@ paths:
           description: Created
     get:
       summary: List data sources
-      tags: [DataSources]
+      tags: [Data Sources]
       security:
         - bearerAuth: []
       responses:
@@ -465,7 +491,7 @@ paths:
           type: integer
     get:
       summary: Get data source
-      tags: [DataSources]
+      tags: [Data Sources]
       security:
         - bearerAuth: []
       responses:
@@ -473,7 +499,7 @@ paths:
           description: Data source
     put:
       summary: Update data source
-      tags: [DataSources]
+      tags: [Data Sources]
       security:
         - bearerAuth: []
       requestBody:
@@ -487,7 +513,7 @@ paths:
           description: Updated
     delete:
       summary: Delete data source
-      tags: [DataSources]
+      tags: [Data Sources]
       security:
         - bearerAuth: []
       responses:
@@ -589,7 +615,6 @@ paths:
       responses:
         '200':
           description: Rebound
-
 
 components:
   schemas:

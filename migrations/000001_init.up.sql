@@ -5,6 +5,7 @@ CREATE TABLE organizations (
     name            TEXT NOT NULL,
     code            TEXT UNIQUE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    deleted_at      TIMESTAMPTZ
 );
 
 CREATE TABLE vehicles (

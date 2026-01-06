@@ -8,6 +8,7 @@ type Organization struct {
 	Code      *string   `json:"code"      gorm:"column:code"`
 	Active    bool      `json:"active"    gorm:"column:active"`
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
+	DeletedAt time.Time `json:"deletedAt" gorm:"column:deleted_at"`
 }
 
 func (Organization) TableName() string {

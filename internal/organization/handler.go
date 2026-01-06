@@ -2,6 +2,7 @@ package organization
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -185,7 +186,13 @@ func (h *Handler) DeleteOrganization(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	org.DeletedAt = time.Now()
+	if err := h.DB.Save(&org).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "db_error", "message": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func (h *Handler) CreateOrganizationWithAdmin(c *gin.Context) {
