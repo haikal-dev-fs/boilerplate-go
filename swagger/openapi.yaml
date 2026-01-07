@@ -10,8 +10,8 @@ info:
     - Trip history & alert (read-only dulu)
 
 servers:
-  - url: http://localhost:8080
-    description: Local development server
+  - url: /
+    description: Current domain (relative path)
 
 paths:
   /health:
